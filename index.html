@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+canvas,
+svg {
+  position: absolute;
+}
+
+</style>
+
+<html>
+<body>
+  <header>
+    <div class="collapse bg-dark" id="navbarHeader">
+      <div class="container">
+        <div class="row">
+             <div class="col-sm-8 col-md-7 py-4">
+               <h4 class="text-white">About</h4>
+               <p class="text-muted">Multi-dimensional data is often represented in a heatmap where the values of the data described by two dimensions is shown as a color.
+               While this is a great way to quickly visualize a lot of data, it makes determination of the actual data values very challenging.
+               This is a javascript app I've developed to help convert heat map data into numerical values. It is very much in progress so use at your own risk! </p>
+             </div>
+             <div class="col-sm-4 offset-md-1 py-4">
+               <h4 class="text-white">Contact</h4>
+               <ul class="list-unstyled">
+                 <li><a href="#" class="text-white">Email me at givemethedata@help.com</a></li>
+               </ul>
+             </div>
+           </div>
+         </div>
+       </div>
+       <div class="navbar navbar-dark bg-dark box-shadow">
+         <div class="container d-flex justify-content-between">
+           <a href="#" class="navbar-brand d-flex align-items-center">
+             <strong>Heatmap Data Extractor</strong>
+           </a>
+           <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarHeader" aria-controls="navbarHeader" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+           </button>
+         </div>
+       </div>
+     </header>
+  <main role="main">
+    <div class="container">
+    <div class="row content">
+      <div class="col-sm-3">
+        <div class="card">
+          <h5 class="card-header">Usage</h5>
+          <div class="card-body">
+            <ol>
+              <li> Upload the color map figure. </li>
+              <li> Drag the cursor over the color bar and specify the values. </li>
+              <li> Drag the cursor over the X-axis and specify the values. </li>
+              <li> Drag the cursor over the Y-axis and specify the values. </li>
+              <li> Click on points to identify value. </li>
+            </ol>
+          </div>
+        </div>
+        <div class="card">
+          <h5 class="card-header">Select Image</h5>
+          <div class="card-body">
+            <div class="container btn-group-vertical">
+              <input  type="file" id="inputFileToLoad">
+              <button type="button" class="btn btn-secondary text-center" onclick="loadImageFileAsURL('fileImage');"> Load Selected File </button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+            <h5 class="card-header">Selected values</h5>
+            <div class="card-body">
+              <p> Color Bar Range <span id="color-bar-range"></span></p>
+              <p> X-axis Range <span id="x-axis-range"></span></p>
+              <p> Y-axis Range <span id="y-axis-range"></span></p>
+              <div id="color-block" style="height:80px;width:80px;border-radius:50%; text-align: center;">
+                  <span id="color-hex">Color</span><br/>
+                  <span id="color-value">Value</span><br/>
+              </div>
+            </div>
+          </div>
+      </div>
+      <div class="col-sm-9" >
+        <div class="card">
+          <h5 class="card-header">Actions</h5>
+          <div class="card-body">
+              <button type="button" class="btn btn-secondary text-center " onclick="resetScales();"> Redefine Scale </button>
+              <button type="button" class="btn btn-secondary text-center" onclick="toggleRemove();"> Toggle Remove Points</button>
+              <button type="button" class="btn btn-secondary text-center" onclick="resetData('dataTable-container');"> Reset Data</button>
+              <button type="button" class="btn btn-secondary text-center" onclick="printData('dataTable-container');"> Print Data</button>
+              <button type="button" class="btn btn-secondary text-center" onclick="canny();"> Auto Detect Points</button>
+          </div>
+        </div>
+        <div class="card">
+          <h5 id="status" class="card-header text-center"></h5>
+          <div class="card-body" style="height: 800px;">
+          	<canvas id = "example" width="800" height="800"></canvas>
+          	<svg id = "overlay" width="800" height="800"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row content">
+      <div class="card container-fluid" >
+        <h5 class="card-header text-center">Data Table</h5>
+        <div id="dataTable-container">
+        </div>
+      </div>
+    </div>
+    </div>
+</main>
+</body>
+<footer class="page-footer font-small">
+  <div class="footer-copyright text-center py-3">
+      <p>Copyright 2018, Connie Wang - All Rights Reserved.</p>
+    </div>
+</footer>
+</html>
+
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+<script type="text/javascript" src="picoModal-3.0.0.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script type="text/javascript" src="nearestColor.js"></script>
+<script type="text/javascript" src="main.js"></script>
+<script type="text/javascript" src="jsFeat/jsfeat-min.js"></script>
+<script src="//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" charset="utf8" src="//cdn.datatables.net/buttons/1.4.2/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" charset="utf8" src="//cdn.datatables.net/buttons/1.4.2/js/buttons.flash.min.js"></script>
+<script type="text/javascript" charset="utf8" src="//cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script type="text/javascript" charset="utf8" src="//cdn.datatables.net/buttons/1.4.2/js/buttons.html5.min.js"></script>
+<link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.16/css/jquery.dataTables.css">
+<link rel="stylesheet" type="text/css" href="//cdn.datatables.net/buttons/1.4.2/css/buttons.dataTables.min.css">
