@@ -1,6 +1,5 @@
-# HeatMapDigitizer #
+# HeatMap Data Extractor #
 
-HeatMapDigitizer 
 Provides a web tool for converting the colors in a figure to numerical data. The user uploads the 
 figure of interest and selects the legend/color bar by dragging over the figure and defining the values
 at either end of the legend. 
@@ -22,7 +21,7 @@ Needed Files
 * nearestColor.js
 * picoModal-3.0.0.min.js
 * jsFeat-min.js
-* mains.js
+* main.js
 
 ### Source and Help ###
 
