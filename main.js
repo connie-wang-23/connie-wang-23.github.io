@@ -39,6 +39,7 @@ var ymin = 0;
 var ymax = 0;
 var samplePoints=[]; //store the autodetected points for sampling
 
+
 function resetScales(){
     bar = false;
     xset=false;
@@ -267,7 +268,7 @@ function updateColorScale(extent){
       }
     }
     else{
-          console.log("vertical")
+      console.log("vertical")
       var y0 = extent[0][1];
       var y1 = extent[1][1];
       var xmid = (extent[0][0] + extent[1][0])/2 ;
@@ -280,17 +281,83 @@ function updateColorScale(extent){
         colorRange.push(hex);
       }
     }
-      colorScale.range(colorRange).domain(colorDomain);
+    colorScale.range(colorRange).domain(colorDomain);
 
-      colorRange.forEach(function(d,i){
-        colorRef[d] = colorDomain[i];
-      })
+    colorRange.forEach(function(d,i){
+      colorRef[d] = colorDomain[i];
+    })
 
-      if( colorRange.length > 2 ){
-        nearest = nearestColor.from( colorRange );
-      }
-      bar = true;
+    if( colorRange.length > 2 ){
+      nearest = nearestColor.from( colorRange );
+    }
+    bar = true;
 }
+
+function rwb_scale(value) {
+  // red -> white -> blue color scale
+  // at 0, (1,0,0) red ; at 0.5, (1,1,1) white ;  at 1 (0,0,1)
+  if (value > 1 || value < 0) {
+    return [0,0,0];
+  }
+  else if ( value <= 0.5) {
+
+    return [255, (value*2)*255, (value*2)*255];
+  }
+  else {
+    return [(1-value)*2*255, (1-value)*2*255, 255];
+  }
+}
+function setManualColorScale() {
+  console.log("Manually setting the color scale");
+  colorRef = {};
+  var colorRange = [];
+  var colorDomain = [];
+  var y0 = 0;
+  var y1 = 1;
+  var pMod = picoModal([
+   "<h1>Set Color Scale  (assumes RWB scale ) Min and Max </h1>",
+   "Minimum:<div id='scale_min' contentEditable='true'>" +
+     ((document.getElementById("scale_min")) ? document.getElementById("scale_min").textContent : 1) + "</div>",
+   "Maximum:<div id='scale_max' contentEditable='true'>" +
+     ((document.getElementById("scale_max")) ? document.getElementById("scale_max").textContent : 0) + "</div>",
+     "<p><button href='#' class='dismiss'>Set Color Scale</button></p>"
+  ].join("\n"))
+   .beforeClose(function(modal){
+       colorScale.domain([
+     parseFloat(modal.modalElem().childNodes[2].textContent),
+     parseFloat(modal.modalElem().childNodes[4].textContent)
+   ])
+   })
+   .afterClose(function(modal){
+     //arbitrarily pick 1000 spots on the range
+     for(i = 0; i < 1000; i++){
+       var y = (y1 - y0)/1000 * i + y0
+       var p = rwb_scale(i/1000.0)
+       var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+       colorDomain.push(colorScale.domain()[0]+((colorScale.domain()[1]-colorScale.domain()[0])/1000 * i));
+       colorRange.push(hex);
+       colorScale.range(colorRange).domain(colorDomain);
+
+       colorRange.forEach(function(d,i){
+         colorRef[d] = colorDomain[i];
+       })
+
+       if( colorRange.length > 2 ){
+         nearest = nearestColor.from( colorRange );
+       }
+       bar = true;
+     }
+   })
+   .afterCreate(function(modal){
+       modal.modalElem().getElementsByClassName("dismiss")[0]
+           .addEventListener('click', modal.close);
+   })
+   .show()
+ }
+
+
+
+
 
  function rgbToHex(r, g, b) {
       if (r > 255 || g > 255 || b > 255)
