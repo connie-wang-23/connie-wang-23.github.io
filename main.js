@@ -1,45 +1,3 @@
-var svg = d3.select("svg");
-// We initially generate a SVG group to keep our brushes' DOM elements in:
-var gBrushes = svg.append('g')
-  .attr("class", "brushes");
-
-var canvas = document.querySelector("canvas"),
-    context = canvas.getContext("2d"),
-    width = canvas.width,
-    height = canvas.height;
-$('#status').text('Click and drag over the color bar to set color scale');
-var brush = d3.brush()
-    .on("end", setColorScale);
-
-var brushX = d3.brushX()
-	.on("end",setXscale);
-
-var brushY = d3.brushY()
-	.on("end",setYscale);
-
-var brushNode,
-	oldMousedown;
-
-var	bar   = false;
-var xset = false;
-var yset = false;
-var data = [];
-var addPoints = false;
-
-var xScale = d3.scaleLinear().domain([0,width]).range([0,10]);
-var yScale = d3.scaleLinear().domain([0,height]).range([0,10]);
-
-var colorScale = d3.scaleLinear().domain([0,1]);
-var nearest = nearestColor;
-var colorRef;
-
-var xmin = 0; //saving the ranges of the graph for auto detect
-var xmax = 0;
-var ymin = 0;
-var ymax = 0;
-var samplePoints=[]; //store the autodetected points for sampling
-
-
 function resetScales(){
     bar = false;
     xset=false;
@@ -50,6 +8,7 @@ function resetScales(){
     gBrushes.selectAll('.brush')
     	.remove();
     newColorBrush();
+    $('#status').text('Click and drag over the color bar to set color scale');
 }
 function toggleRemove(){
   addPoints=!addPoints;
@@ -293,6 +252,31 @@ function updateColorScale(extent){
     bar = true;
 }
 
+function KlesmithColorScaleTat(value) {
+  //Klesmith2016 color scale goes from 4 at [250,105,105] to -1 at [90, 138,198]
+  if (value > 4 || value < -1) {
+    return [191,191,191]
+  }
+  else if (value >= 0) {
+    return [250, (4-value)/4*(255-105)+105, (4-value)/4*(255-105)+105];
+  }
+  else {
+    return [255+value*(255-90), 255+value*(255-138), 255+value*(255-198)];
+  }
+}
+
+function KlesmithColorScaleYSD(value) {
+  //Klesmith2016 color scale goes from 4 at [250,105,105] to -1 at [90, 138,198]
+  if (value > 2 || value < -0.5) {
+    return [191,191,191]
+  }
+  else if (value >= 0) {
+    return [250, (2-value)/2*(255-105)+105, (2-value)/2*(255-105)+105];
+  }
+  else {
+    return [255+(value/0.5)*(255-90), 255+(value/0.5)*(255-138), 255+(value/0.5)*(255-198)];
+  }
+}
 function rwb_scale(value) {
   // red -> white -> blue color scale
   // at 0, (1,0,0) red ; at 0.5, (1,1,1) white ;  at 1 (0,0,1)
@@ -312,15 +296,16 @@ function setManualColorScale() {
   colorRef = {};
   var colorRange = [];
   var colorDomain = [];
-  var y0 = 0;
-  var y1 = 1;
   var pMod = picoModal([
-   "<h1>Set Color Scale  (assumes RWB scale ) Min and Max </h1>",
-   "Minimum:<div id='scale_min' contentEditable='true'>" +
+   "<h1>Set Color Scale  (assumes RWB scale ) Red and Blue Values </h1>",
+   "Red:<div id='scale_min' contentEditable='true'>" +
      ((document.getElementById("scale_min")) ? document.getElementById("scale_min").textContent : 1) + "</div>",
-   "Maximum:<div id='scale_max' contentEditable='true'>" +
+   "Blue:<div id='scale_max' contentEditable='true'>" +
      ((document.getElementById("scale_max")) ? document.getElementById("scale_max").textContent : 0) + "</div>",
-     "<p><button href='#' class='dismiss'>Set Color Scale</button></p>"
+     "<p><button href='#' class='dismiss'>Set Color Scale</button></p>",
+    "Red value:<div id='scale_max' contentEditable='true'>" +
+       ((document.getElementById("scale_max")) ? document.getElementById("scale_max").textContent : 0) + "</div>",
+       "<p><button href='#' class='dismiss'>Set Color Scale</button></p>"
   ].join("\n"))
    .beforeClose(function(modal){
        colorScale.domain([
@@ -331,22 +316,20 @@ function setManualColorScale() {
    .afterClose(function(modal){
      //arbitrarily pick 1000 spots on the range
      for(i = 0; i < 1000; i++){
-       var y = (y1 - y0)/1000 * i + y0
        var p = rwb_scale(i/1000.0)
        var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
-       colorDomain.push(colorScale.domain()[0]+((colorScale.domain()[1]-colorScale.domain()[0])/1000 * i));
+       // console.log(hex);
+       colorDomain.push(colorScale.domain()[0]+((colorScale.domain()[1]-colorScale.domain()[0])/1000.0 * i));
        colorRange.push(hex);
-       colorScale.range(colorRange).domain(colorDomain);
-
-       colorRange.forEach(function(d,i){
-         colorRef[d] = colorDomain[i];
-       })
-
-       if( colorRange.length > 2 ){
-         nearest = nearestColor.from( colorRange );
-       }
-       bar = true;
+     };
+     colorScale.range(colorRange).domain(colorDomain);
+     colorRange.forEach(function(d,i){
+       colorRef[d] = colorDomain[i];
+     })
+     if( colorRange.length > 2 ){
+       nearest = nearestColor.from( colorRange );
      }
+     bar = true;
    })
    .afterCreate(function(modal){
        modal.modalElem().getElementsByClassName("dismiss")[0]
@@ -356,7 +339,49 @@ function setManualColorScale() {
  }
 
 
+function setKlesmithColorScaleTat() {
+  console.log("Manually setting the color scale to the Klesmith scale");
+  colorRef = {};
+  var colorRange = [];
+  var colorDomain = [];
+  for(i = 0; i < 1000; i++){
+    var p = KlesmithColorScaleTat((i*5)/1000.0 - 1)
+    var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+    // console.log(hex);
+    colorDomain.push((i*5)/1000.0 - 1);
+    colorRange.push(hex);
+  };
+  colorScale.range(colorRange).domain(colorDomain);
+  colorRange.forEach(function(d,i){
+    colorRef[d] = colorDomain[i];
+  })
+    if( colorRange.length > 2 ){
+      nearest = nearestColor.from( colorRange );
+    }
+    bar = true;
+}
 
+function setKlesmithColorScaleYSD() {
+  console.log("Manually setting the color scale to the Klesmith scale");
+  colorRef = {};
+  var colorRange = [];
+  var colorDomain = [];
+  for(i = 0; i < 1000; i++){
+    var p = KlesmithColorScaleYSD((i*2.5)/1000.0 - 0.5)
+    var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+    // console.log(hex);
+    colorDomain.push((i*2.5)/1000.0 - 0.5);
+    colorRange.push(hex);
+  };
+  colorScale.range(colorRange).domain(colorDomain);
+  colorRange.forEach(function(d,i){
+    colorRef[d] = colorDomain[i];
+  })
+    if( colorRange.length > 2 ){
+      nearest = nearestColor.from( colorRange );
+    }
+    bar = true;
+}
 
 
  function rgbToHex(r, g, b) {
@@ -401,143 +426,188 @@ function markPoint(x,y){
         .on("end", dragended));
  }
 
+
+function printData(dataTableId){
+     var tableText = "<table id=dataTable><thead><tr><th>X</th><th>Y</th><th>Value</th></tr></thead><tbody>"
+     svg.selectAll("circle").each(function(d,i) {
+       var p = context.getImageData(d3.select(this).attr('cx'), d3.select(this).attr('cy'), 1, 1).data;
+       var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+       var result = colorRef[nearest(hex)];
+        tableText+='<tr><td>'+xScale(d3.select(this).attr('cx')).toFixed(3)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(3)+'</td><td>'+result.toFixed(3)+'</td></tr>'
+     });
+     tableText+='</tbody></table>'
+     document.getElementById(dataTableId).innerHTML = tableText;
+     $('#dataTable').DataTable({
+         dom: 'Bfrtip',
+         buttons:['csv','excel','copy']
+      }
+     );
+ }
+
+function resetData(dataTableId){
+     data=[];
+     document.getElementById(dataTableId).innerHTML = "";
+     svg.selectAll("circle").remove();
+     svg.selectAll("line").remove();
+ }
+
+function canny(b, l, h) {
+     //Get the dimensions of the photo currently on the canvas
+     var width = canvas.width;
+     var height = canvas.height;
+     console.log('in canny width,height:',width, height)
+     console.log('in canny ',xmin, xmax, ymin, ymax)
+     var data_type = jsfeat.U8_t | jsfeat.C1_t;
+     var img = image;
+
+     var data_buffer = new jsfeat.data_t(width * height);
+     var img_u8 = new jsfeat.matrix_t(width, height, data_type, data_buffer);
+     var imageData = context.getImageData(0, 0, width, height);
+     console.log(imageData);
+
+     //Convert to grascale(needed for other methods)
+     jsfeat.imgproc.grayscale(imageData.data, width, height, img_u8);
+
+     //Control level of detail in edge detection
+     var blurLevel;
+     var lowThreshold;
+     var highThreshhold;
+
+     if (b == undefined)
+         blurLevel = 2;
+     else
+         blurLebel = b;
+     if (l == undefined)
+         lowThreshold = 40;
+     else
+         lowThreshold = l;
+     if (h == undefined)
+         highThreshhold = 100;
+     else
+         highThreshhold = h;
+
+     //Gaussian Blur to reduce noise
+     var r = blurLevel | 0;
+     var kernel_size = (r + 1) << 1;
+     jsfeat.imgproc.gaussian_blur(img_u8, img_u8, kernel_size, 0);
+
+     //Reduce image to edges
+     jsfeat.imgproc.canny(img_u8, img_u8, lowThreshold | 0, highThreshhold | 0);
+
+     //print the detected edges
+     //TODO turn this into a "proposed" grid!
+     //restrict edges to defined between x-axis and y-axis
+     //draw grid on canvas
+     var xPoints = {}
+     for(var x = 0; x < img_u8.cols; x++){
+         xPoints[x] = 0;
+     }
+     var yPoints = {}
+     for( var y =0; y< img_u8.rows; y++) {
+         yPoints[y] = 0;
+     }
+     for(var x = 0; x < img_u8.cols; x++){
+         for( var y =0; y< img_u8.rows; y++) {
+             var ind =  x + y*img_u8.rows;
+             if (x < xmax && x > xmin && y < ymax && y > ymin && img_u8.data[ind] != 0 ) {
+               xPoints[x] += 1;
+               yPoints[y] += 1;
+             }
+         }
+     }
+     //DRAW GRIDLINES AND PUT DOTS ON MIDDLES OF SQUARES!
+     var xthreshold = (ymax-ymin)/3;
+     var ythreshold = (xmax-xmin)/3;
+     var gap = 3;
+     var xArray = [];
+     var yArray = [];
+
+     for(var x = 0; x < img_u8.cols; x++){
+         if (xPoints[x] > xthreshold) {
+             xArray.push(x);
+             drawLine(x, x, ymin,ymax);
+         }
+     }
+     for(var y = 0; y < img_u8.rows; y++){
+         if (yPoints[y] > ythreshold) {
+             yArray.push(y);
+             // drawLine(xmin,xmax,y, y);
+         }
+     }
+     for (var i =0; i < xArray.length-1;i++){
+         for (var j =0;j<yArray.length-1;j++){
+             if (xArray[i+1] - xArray[i] > gap && yArray[j+1]-yArray[j] > gap)  {
+                 var xpos = (xArray[i]+xArray[i+1])/2.0;
+                 var ypos = (yArray[j]+yArray[j+1])/2.0;
+                 samplePoints.push([xpos,ypos]);
+                 var p = context.getImageData(xpos, ypos, 1, 1).data;
+                 var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+                 data.push([xScale(xpos), yScale(ypos), colorRef[nearest(hex)]]);
+                 markPoint(xpos, ypos);
+             }
+         }
+     }
+
+     //Render the image data back to canvas
+     var data_u32 = new Uint32Array(imageData.data.buffer);
+     var alpha = (0xff << 24);
+     var i = img_u8.cols * img_u8.rows,
+         pix = 0;
+     while (--i >= 0) {
+         pix = img_u8.data[i];
+         data_u32[i] = alpha | (pix << 16) | (pix << 8) | pix;
+     }
+     //Put the edited image on the canvas
+     //context.putImageData(imageData, 0, 0);
+ }
+
+var svg = d3.select("svg");
+// We initially generate a SVG group to keep our brushes' DOM elements in:
+var gBrushes = svg.append('g')
+  .attr("class", "brushes");
+
+var canvas = document.querySelector("canvas"),
+    context = canvas.getContext("2d"),
+    width = canvas.width,
+    height = canvas.height;
+$('#status').text('Click and drag over the color bar to set color scale');
+var brush = d3.brush()
+    .on("end", setColorScale);
+
+var brushX = d3.brushX()
+	.on("end",setXscale);
+
+var brushY = d3.brushY()
+	.on("end",setYscale);
+
+var brushNode,
+	oldMousedown;
+
+var	bar   = false;
+var xset = false;
+var yset = false;
+var data = [];
+var addPoints = false;
+
+var xScale = d3.scaleLinear().domain([0,width]).range([0,10]);
+var yScale = d3.scaleLinear().domain([0,height]).range([0,10]);
+
+var colorScale = d3.scaleLinear().domain([0,1]);
+var nearest = nearestColor;
+var colorRef;
+
+var xmin = 0; //saving the ranges of the graph for auto detect
+var xmax = 0;
+var ymin = 0;
+var ymax = 0;
+var samplePoints=[]; //store the autodetected points for sampling
+
+
+
+
 var image = new Image;
 image.src = "image.png";
 image.onload = loadImageToCanvas;
-
-function printData(dataTableId){
-    var tableText = "<table id=dataTable><thead><tr><th>X</th><th>Y</th><th>Value</th></tr></thead><tbody>"
-    svg.selectAll("circle").each(function(d,i) {
-      var p = context.getImageData(d3.select(this).attr('cx'), d3.select(this).attr('cy'), 1, 1).data;
-      var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
-      var result = colorRef[nearest(hex)];
-       tableText+='<tr><td>'+xScale(d3.select(this).attr('cx')).toFixed(3)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(3)+'</td><td>'+result.toFixed(3)+'</td></tr>'
-    });
-    tableText+='</tbody></table>'
-    document.getElementById(dataTableId).innerHTML = tableText;
-    $('#dataTable').DataTable({
-        dom: 'Bfrtip',
-        buttons:['csv','excel','copy']
-     }
-    );
-}
-
-function resetData(dataTableId){
-    data=[];
-    document.getElementById(dataTableId).innerHTML = "";
-    svg.selectAll("circle").remove();
-    svg.selectAll("line").remove();
-}
-
-function canny(b, l, h) {
-    //Get the dimensions of the photo currently on the canvas
-    var width = canvas.width;
-    var height = canvas.height;
-    console.log('in canny width,height:',width, height)
-    console.log('in canny ',xmin, xmax, ymin, ymax)
-    var data_type = jsfeat.U8_t | jsfeat.C1_t;
-    var img = image;
-
-    var data_buffer = new jsfeat.data_t(width * height);
-    var img_u8 = new jsfeat.matrix_t(width, height, data_type, data_buffer);
-    var imageData = context.getImageData(0, 0, width, height);
-    console.log(imageData);
-
-    //Convert to grascale(needed for other methods)
-    jsfeat.imgproc.grayscale(imageData.data, width, height, img_u8);
-
-    //Control level of detail in edge detection
-    var blurLevel;
-    var lowThreshold;
-    var highThreshhold;
-
-    if (b == undefined)
-        blurLevel = 2;
-    else
-        blurLebel = b;
-    if (l == undefined)
-        lowThreshold = 40;
-    else
-        lowThreshold = l;
-    if (h == undefined)
-        highThreshhold = 100;
-    else
-        highThreshhold = h;
-
-    //Gaussian Blur to reduce noise
-    var r = blurLevel | 0;
-    var kernel_size = (r + 1) << 1;
-    jsfeat.imgproc.gaussian_blur(img_u8, img_u8, kernel_size, 0);
-
-    //Reduce image to edges
-    jsfeat.imgproc.canny(img_u8, img_u8, lowThreshold | 0, highThreshhold | 0);
-
-    //print the detected edges
-    //TODO turn this into a "proposed" grid!
-    //restrict edges to defined between x-axis and y-axis
-    //draw grid on canvas
-    var xPoints = {}
-    for(var x = 0; x < img_u8.cols; x++){
-        xPoints[x] = 0;
-    }
-    var yPoints = {}
-    for( var y =0; y< img_u8.rows; y++) {
-        yPoints[y] = 0;
-    }
-    for(var x = 0; x < img_u8.cols; x++){
-        for( var y =0; y< img_u8.rows; y++) {
-            var ind =  x + y*img_u8.rows;
-            if (x < xmax && x > xmin && y < ymax && y > ymin && img_u8.data[ind] != 0 ) {
-              xPoints[x] += 1;
-              yPoints[y] += 1;
-            }
-        }
-    }
-    //DRAW GRIDLINES AND PUT DOTS ON MIDDLES OF SQUARES!
-    var xthreshold = (ymax-ymin)/3;
-    var ythreshold = (xmax-xmin)/3;
-    var gap = 3;
-    var xArray = [];
-    var yArray = [];
-
-    for(var x = 0; x < img_u8.cols; x++){
-        if (xPoints[x] > xthreshold) {
-            xArray.push(x);
-            drawLine(x, x, ymin,ymax);
-        }
-    }
-    for(var y = 0; y < img_u8.rows; y++){
-        if (yPoints[y] > ythreshold) {
-            yArray.push(y);
-            // drawLine(xmin,xmax,y, y);
-        }
-    }
-    for (var i =0; i < xArray.length-1;i++){
-        for (var j =0;j<yArray.length-1;j++){
-            if (xArray[i+1] - xArray[i] > gap && yArray[j+1]-yArray[j] > gap)  {
-                var xpos = (xArray[i]+xArray[i+1])/2.0;
-                var ypos = (yArray[j]+yArray[j+1])/2.0;
-                samplePoints.push([xpos,ypos]);
-                var p = context.getImageData(xpos, ypos, 1, 1).data;
-                var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
-                data.push([xScale(xpos), yScale(ypos), colorRef[nearest(hex)]]);
-                markPoint(xpos, ypos);
-            }
-        }
-    }
-
-    //Render the image data back to canvas
-    var data_u32 = new Uint32Array(imageData.data.buffer);
-    var alpha = (0xff << 24);
-    var i = img_u8.cols * img_u8.rows,
-        pix = 0;
-    while (--i >= 0) {
-        pix = img_u8.data[i];
-        data_u32[i] = alpha | (pix << 16) | (pix << 8) | pix;
-    }
-    //Put the edited image on the canvas
-    //context.putImageData(imageData, 0, 0);
-}
 
 
 svg.on("click", function() {

@@ -97,7 +97,7 @@
    * @param {Array.<string>|Object} availableColors An array of hex-based color
    *     strings, or an object mapping color *names* to hex values.
    * @return {function(string):ColorMatch|string} A function with the same
-   *     behavior as {@link nearestColor}, but with the list of colors 
+   *     behavior as {@link nearestColor}, but with the list of colors
    *     predefined.
    *
    * @example
@@ -131,7 +131,6 @@
    * getAnyColor('#888'); // => '#444'
    */
   nearestColor.from = function from(availableColors) {
-  	console.log("Here");
   	console.log(availableColors);
     var colors = mapColors(availableColors),
         nearestColorBase = nearestColor;
