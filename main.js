@@ -61,7 +61,15 @@ function loadImageFileAsURL()
 
 function loadImageToCanvas() {
   context.clearRect(0, 0, width, height);
-  context.drawImage(this,0,0, width, width*this.height/this.width);
+  if (this.width >= width) {
+      context.drawImage(this,0,0, width, width*this.height/this.width);
+  }
+  else if (this.width < width && this.height < height){
+    context.drawImage(this,0,0, this.width, this.height);
+  }
+  else {
+    context.drawImage(this,0,0, this.width, this.height);
+  }
   newColorBrush();
 }
 
@@ -340,7 +348,7 @@ function setManualColorScale() {
 
 
 function setKlesmithColorScaleTat() {
-  console.log("Manually setting the color scale to the Klesmith scale");
+  console.log("Manually setting the color scale to the Klesmith Tat scale");
   colorRef = {};
   var colorRange = [];
   var colorDomain = [];
@@ -362,7 +370,7 @@ function setKlesmithColorScaleTat() {
 }
 
 function setKlesmithColorScaleYSD() {
-  console.log("Manually setting the color scale to the Klesmith scale");
+  console.log("Manually setting the color scale to the Klesmith YSD scale");
   colorRef = {};
   var colorRange = [];
   var colorDomain = [];
@@ -428,12 +436,12 @@ function markPoint(x,y){
 
 
 function printData(dataTableId){
-     var tableText = "<table id=dataTable><thead><tr><th>X</th><th>Y</th><th>Value</th></tr></thead><tbody>"
+     var tableText = "<table id=dataTable><thead><tr><th>X</th><th>Y</th><th>X_int</th><th>Y_int</th><th>Value</th></tr></thead><tbody>"
      svg.selectAll("circle").each(function(d,i) {
        var p = context.getImageData(d3.select(this).attr('cx'), d3.select(this).attr('cy'), 1, 1).data;
        var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
        var result = colorRef[nearest(hex)];
-        tableText+='<tr><td>'+xScale(d3.select(this).attr('cx')).toFixed(3)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(3)+'</td><td>'+result.toFixed(3)+'</td></tr>'
+        tableText+='<tr><td>'+xScale(d3.select(this).attr('cx')).toFixed(3)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(3)+'</td><td>'+xScale(d3.select(this).attr('cx')).toFixed(0)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(0)+'</td><td>'+result.toFixed(3)+'</td></tr>'
      });
      tableText+='</tbody></table>'
      document.getElementById(dataTableId).innerHTML = tableText;
