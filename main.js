@@ -436,12 +436,12 @@ function markPoint(x,y){
 
 
 function printData(dataTableId){
-     var tableText = "<table id=dataTable><thead><tr><th>X</th><th>Y</th><th>X_int</th><th>Y_int</th><th>Value</th></tr></thead><tbody>"
+     var tableText = "<table id=dataTable><thead><tr><th>order</th><th>pixelX</th><th>pixelY</th><th>X</th><th>Y</th><th>X_int</th><th>Y_int</th><th>Value</th></tr></thead><tbody>"
      svg.selectAll("circle").each(function(d,i) {
        var p = context.getImageData(d3.select(this).attr('cx'), d3.select(this).attr('cy'), 1, 1).data;
        var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
        var result = colorRef[nearest(hex)];
-        tableText+='<tr><td>'+xScale(d3.select(this).attr('cx')).toFixed(3)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(3)+'</td><td>'+xScale(d3.select(this).attr('cx')).toFixed(0)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(0)+'</td><td>'+result.toFixed(3)+'</td></tr>'
+        tableText+='<tr><td>' + i + '</td><td>'+d3.select(this).attr('cx')+'</td><td>'+d3.select(this).attr('cy')+'</td><td>'+xScale(d3.select(this).attr('cx')).toFixed(3)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(3)+'</td><td>'+xScale(d3.select(this).attr('cx')).toFixed(0)+'</td><td>'+yScale(d3.select(this).attr('cy')).toFixed(0)+'</td><td>'+result.toFixed(3)+'</td></tr>'
      });
      tableText+='</tbody></table>'
      document.getElementById(dataTableId).innerHTML = tableText;
